@@ -19,13 +19,9 @@ describe('SequenceNumberManager', () => {
     manager.clear();
   });
 
-  // ── cache miss ─────────────────────────────────────────────────────────────
-
   it('returns undefined on cache miss', () => {
     expect(manager.getNextSequenceNumber(PK_A)).toBeUndefined();
   });
-
-  // ── cache and retrieve ─────────────────────────────────────────────────────
 
   it('returns cached value and increments optimistically', () => {
     manager.cacheSequenceNumber(PK_A, 100);
@@ -33,8 +29,6 @@ describe('SequenceNumberManager', () => {
     expect(manager.getNextSequenceNumber(PK_A)).toBe(101);
     expect(manager.getNextSequenceNumber(PK_A)).toBe(102);
   });
-
-  // ── multiple keys are isolated ─────────────────────────────────────────────
 
   it('isolates sequence numbers per public key', () => {
     manager.cacheSequenceNumber(PK_A, 10);
@@ -46,11 +40,9 @@ describe('SequenceNumberManager', () => {
     expect(manager.getNextSequenceNumber(PK_B)).toBe(201);
   });
 
-  // ── reset ──────────────────────────────────────────────────────────────────
-
   it('clears cached entry after reset', () => {
     manager.cacheSequenceNumber(PK_A, 5);
-    manager.getNextSequenceNumber(PK_A); // consumes 5, cache becomes 6
+    manager.getNextSequenceNumber(PK_A);
     manager.reset(PK_A);
     expect(manager.getNextSequenceNumber(PK_A)).toBeUndefined();
   });
@@ -62,8 +54,6 @@ describe('SequenceNumberManager', () => {
     expect(manager.getNextSequenceNumber(PK_A)).toBeUndefined();
     expect(manager.getNextSequenceNumber(PK_B)).toBe(2);
   });
-
-  // ── clear / count ──────────────────────────────────────────────────────────
 
   it('count returns number of cached keys', () => {
     expect(manager.count()).toBe(0);
@@ -80,16 +70,14 @@ describe('SequenceNumberManager', () => {
     expect(manager.count()).toBe(0);
   });
 
-  // ── concurrent submission scenario ─────────────────────────────────────────
-  // Simulates N concurrent callers all calling getNextSequenceNumber at once.
-
   it('produces strictly increasing sequence numbers under concurrent load', () => {
     const CONCURRENCY = 10;
     const startSeq = 50;
     manager.cacheSequenceNumber(PK_A, startSeq);
 
-    const results = Array.from({ length: CONCURRENCY }, () =>
-      manager.getNextSequenceNumber(PK_A)!,
+    const results = Array.from(
+      { length: CONCURRENCY },
+      () => manager.getNextSequenceNumber(PK_A)!,
     );
 
     const sorted = [...results].sort((a, b) => a - b);
@@ -105,8 +93,9 @@ describe('SequenceNumberManager', () => {
 
     manager.cacheSequenceNumber(PK_A, 100);
 
-    const calls = Array.from({ length: CONCURRENCY }, () =>
-      manager.getNextSequenceNumber(PK_A)!,
+    const calls = Array.from(
+      { length: CONCURRENCY },
+      () => manager.getNextSequenceNumber(PK_A)!,
     );
 
     const unique = new Set(calls);

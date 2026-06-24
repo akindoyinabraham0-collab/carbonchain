@@ -122,12 +122,17 @@ describe('StellarService - sequence number integration', () => {
         hash: 'abc123',
       });
 
-      await service.invokeContract(CONTRACT_ID, 'test_method', [], signerKeypair);
+      await service.invokeContract(
+        CONTRACT_ID,
+        'test_method',
+        [],
+        signerKeypair,
+      );
 
-      // Must have loaded the account once
       expect(mockLoadAccount).toHaveBeenCalledTimes(1);
-      // Sequence should now be cached at 43 (original 42 + 1 optimistically)
-      expect(seqNoManager.getNextSequenceNumber(signerKeypair.publicKey())).toBe(43);
+      expect(
+        seqNoManager.getNextSequenceNumber(signerKeypair.publicKey()),
+      ).toBe(43);
     });
 
     it('uses cached sequence without loading from Horizon on subsequent calls', async () => {

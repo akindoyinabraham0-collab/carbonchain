@@ -105,7 +105,8 @@ export class StellarService implements OnModuleInit {
       preparedTx.sign(signerKeypair);
 
       try {
-        const response = await this.sorobanRpcServer.sendTransaction(preparedTx);
+        const response =
+          await this.sorobanRpcServer.sendTransaction(preparedTx);
 
         if ((response.status as string) === 'PENDING') {
           return this.pollTransactionStatus(response.hash);
@@ -122,7 +123,13 @@ export class StellarService implements OnModuleInit {
             `tx_bad_seq for ${pk} (sig:${method}), resetting cache and retrying`,
           );
           this.seqNoManager.reset(pk);
-          return this.invokeContract(contractId, method, args, signerKeypair, retries - 1);
+          return this.invokeContract(
+            contractId,
+            method,
+            args,
+            signerKeypair,
+            retries - 1,
+          );
         }
         throw error;
       }
@@ -160,15 +167,9 @@ export class StellarService implements OnModuleInit {
         err?.response?.data?.extras?.result_codes?.transaction === 'tx_bad_seq';
 
       if (isBadSeq && retries > 0) {
-        this.logger.warn(
-          `tx_bad_seq for ${pk}, resetting cache and retrying`,
-        );
+        this.logger.warn(`tx_bad_seq for ${pk}, resetting cache and retrying`);
         this.seqNoManager.reset(pk);
-        return this.buildAndSubmit(
-          operations,
-          signerKeypair,
-          retries - 1,
-        );
+        return this.buildAndSubmit(operations, signerKeypair, retries - 1);
       }
       throw error;
     }

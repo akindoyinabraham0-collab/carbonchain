@@ -31,9 +31,6 @@ export class AdminService {
   }
 
   registerVerifier(address: string): { registered: boolean; address: string } {
-  async registerVerifier(
-    address: string,
-  ): Promise<{ registered: boolean; address: string }> {
     return { registered: true, address };
   }
 
@@ -42,12 +39,11 @@ export class AdminService {
     return { suspended: true };
   }
 
-  async configureVerifier(id: string, _capabilities: VerifierCapabilities): Promise<{ configured: boolean; verifierId: string }> {
-    void _capabilities;
   async configureVerifier(
     id: string,
     _capabilities: VerifierCapabilities,
   ): Promise<{ configured: boolean; verifierId: string }> {
+    void _capabilities;
     await this.verifiersService.getVerifier(id);
     return { configured: true, verifierId: id };
   }

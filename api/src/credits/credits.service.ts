@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
-import { Injectable, Inject, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StellarService } from '../stellar/stellar.service';
 import { StellarKeypairService } from '../stellar/stellar-keypair.service';
 import { scValToNative, nativeToScVal } from '@stellar/stellar-sdk';
 import { CreditMetadata, CreditStatus } from '../shared';
 import { CreditEntity } from './credit.entity';
-import type {
-  ICreditRepository,
-  PageResult,
-} from './credit.repository';
-import {
-  CREDIT_REPOSITORY,
-} from './credit.repository';
+import type { ICreditRepository, PageResult } from './credit.repository';
+import { CREDIT_REPOSITORY } from './credit.repository';
 import { CacheService } from '../common/cache.service';
 
 // Cache key helpers
@@ -170,10 +171,21 @@ export class CreditsService {
     return results;
   }
 
-  async listCredits(
-    filter: ListCreditsFilter,
-  ): Promise<{ data: CreditMetadata[]; total: number; page: number; limit: number }> {
-    this.logger.log(`Listing credits with filters: ${JSON.stringify(filter)}`);
+  async listCredits(filter: ListCreditsFilter): Promise<{
+    data: CreditMetadata[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    // Default to Active-only when no status is requested, so Retired and Flagged
+    // credits are never included unless the caller explicitly opts in.
+    const effectiveStatus: string = filter.status ?? CreditStatus.Active;
+    const effectiveFilter = { ...filter, status: effectiveStatus };
+
+    // Default to Active when client does not provide a status filter
+    if (!filter.status) {
+      filter.status = CreditStatus.Active;
+    }
 
     const cacheKey = LIST_CREDITS_KEY(JSON.stringify(filter));
     const cachedResult = await this.cache.get<{
@@ -187,33 +199,41 @@ export class CreditsService {
       return cachedResult;
     }
 
-    // For now, return empty results as we don't have a list_all_credits contract method
-    // In production, this would query the blockchain or an indexed database
-    const allCredits: CreditMetadata[] = [];
+    // Fetch all credits from the off-chain repository and map to metadata.
+    // Use a large limit to retrieve the full index for server-side filtering.
+    let allCredits: CreditMetadata[] = [];
+    try {
+      const repoResult = await this.creditRepo.findAll(1, 1000000);
+      allCredits = repoResult.data.map((e) => this.entityToMetadata(e));
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch credits from repo: ${(err as Error).message}`,
+      );
+      allCredits = [];
+    }
 
-    // Apply filters
+    // Apply secondary filters
     let filtered = allCredits;
+
+    if (filter.status) {
+      filtered = filtered.filter((c) => c.status === filter.status);
+    }
 
     if (filter.methodology) {
       filtered = filtered.filter(
-        (c) => c.methodology.toLowerCase() === filter.methodology?.toLowerCase(),
+        (c) =>
+          c.methodology.toLowerCase() === filter.methodology!.toLowerCase(),
       );
     }
 
     if (filter.geography) {
       filtered = filtered.filter(
-        (c) => c.geography.toLowerCase() === filter.geography?.toLowerCase(),
+        (c) => c.geography.toLowerCase() === filter.geography!.toLowerCase(),
       );
     }
 
     if (filter.vintageYear) {
       filtered = filtered.filter((c) => c.vintage_year === filter.vintageYear);
-    }
-
-    if (filter.status) {
-      filtered = filtered.filter(
-        (c) => c.status.toLowerCase() === filter.status?.toLowerCase(),
-      );
     }
 
     if (filter.minTonnes) {
@@ -228,8 +248,7 @@ export class CreditsService {
 
     const total = filtered.length;
     const start = (filter.page - 1) * filter.limit;
-    const end = start + filter.limit;
-    const data = filtered.slice(start, end);
+    const data = filtered.slice(start, start + filter.limit);
 
     const result = { data, total, page: filter.page, limit: filter.limit };
     await this.cache.set(cacheKey, result, CREDIT_TTL);

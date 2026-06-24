@@ -6,8 +6,24 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTRACTS_FILE="$SCRIPT_DIR/contract-ids.testnet.json"
 
+# Pinned stellar-cli version — update this when upgrading the CLI.
+REQUIRED_STELLAR_CLI_VERSION="26.1.0"
+
 log()  { echo "🌿 $*"; }
 fail() { echo "❌ $*" >&2; exit 1; }
+
+# ── 0. Verify stellar-cli version ────────────────────────────────────────────
+
+if ! command -v stellar &>/dev/null; then
+    fail "stellar CLI not found. Install with: cargo install --locked stellar-cli@${REQUIRED_STELLAR_CLI_VERSION} --features opt"
+fi
+
+INSTALLED_VERSION=$(stellar --version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+if [[ "$INSTALLED_VERSION" != "$REQUIRED_STELLAR_CLI_VERSION" ]]; then
+    fail "stellar-cli version mismatch: required ${REQUIRED_STELLAR_CLI_VERSION}, found ${INSTALLED_VERSION:-unknown}. Install with: cargo install --locked stellar-cli@${REQUIRED_STELLAR_CLI_VERSION} --features opt"
+fi
+
+log "stellar-cli ${INSTALLED_VERSION} ✓"
 
 [[ -n "${ADMIN_SECRET_KEY:-}" ]] || fail "ADMIN_SECRET_KEY is not set"
 
@@ -27,9 +43,9 @@ stellar keys fund "$ADMIN_ADDRESS" --network testnet || true
 
 log "Building Soroban contracts..."
 (cd "$SCRIPT_DIR/../contracts" && \
-  cargo build --target wasm32-unknown-unknown --release --quiet)
+  cargo build --target wasm32v1-none --release --quiet)
 
-WASM_DIR="$SCRIPT_DIR/../contracts/target/wasm32-unknown-unknown/release"
+WASM_DIR="$SCRIPT_DIR/../contracts/target/wasm32v1-none/release"
 
 # ── 3. Deploy contracts ───────────────────────────────────────────────────────
 
@@ -70,7 +86,8 @@ stellar contract invoke \
   --network testnet \
   -- initialize \
   --admin "$ADMIN_ADDRESS" \
-  --retirement-contract "$RETIREMENT_ID"
+  --retirement-contract "$RETIREMENT_ID" \
+  --required-approvals 1
 
 log "Initializing retirement..."
 stellar contract invoke \

@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from './admin.guard';
-import { AdminService, AdminStats, VerifierCapabilities } from './admin.service';
+import { AdminService, AdminStats } from './admin.service';
+import type { VerifierCapabilities } from './admin.service';
 import { CreditStatus } from '../shared';
 
 @UseGuards(AuthGuard('jwt'), AdminGuard)
@@ -15,7 +16,9 @@ export class AdminController {
   }
 
   @Post('verifiers/register')
-  registerVerifier(@Body() body: { address: string }): Promise<{ registered: boolean; address: string }> {
+  registerVerifier(
+    @Body() body: { address: string },
+  ): Promise<{ registered: boolean; address: string }> {
     return this.adminService.registerVerifier(body.address);
   }
 

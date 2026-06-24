@@ -13,3 +13,4 @@ soroban-sdk = "26.0.1"
 
 [dev-dependencies]
 soroban-sdk = { version = "26.0.1", features = ["testutils"] }
+carbonchain-credit-registry = { path = "../credit_registry", features = ["testutils"] }

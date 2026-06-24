@@ -2,6 +2,36 @@ import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ThrottlerGuard, ThrottleOptions } from './throttler.guard';
 
+function makeContext(
+  ip: string,
+  path: string,
+  options?: ThrottleOptions,
+): ExecutionContext {
+  const reflector = new Reflector();
+  const guard = new ThrottlerGuard(reflector);
+
+  const mockReq = {
+    headers: {},
+    socket: { remoteAddress: ip },
+    path,
+  };
+
+  const ctx = {
+    switchToHttp: () => ({ getRequest: () => mockReq }),
+    getHandler: () => ({}),
+    getClass: () => ({}),
+  } as unknown as ExecutionContext;
+
+  // Inject options directly onto the handler mock
+  if (options) {
+    jest.spyOn(reflector, 'get').mockReturnValue(options);
+  } else {
+    jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+  }
+
+  return ctx;
+}
+
 describe('ThrottlerGuard', () => {
   let reflector: Reflector;
   let guard: ThrottlerGuard;
@@ -14,7 +44,13 @@ describe('ThrottlerGuard', () => {
   it('allows requests when no throttle options are set', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(undefined);
     const ctx = {
-      switchToHttp: () => ({ getRequest: () => ({ headers: {}, socket: { remoteAddress: '1.2.3.4' }, path: '/test' }) }),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          headers: {},
+          socket: { remoteAddress: '1.2.3.4' },
+          path: '/test',
+        }),
+      }),
       getHandler: () => ({}),
       getClass: () => ({}),
     } as unknown as ExecutionContext;
@@ -27,7 +63,13 @@ describe('ThrottlerGuard', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(options);
 
     const ctx = {
-      switchToHttp: () => ({ getRequest: () => ({ headers: {}, socket: { remoteAddress: '1.2.3.4' }, path: '/auth/challenge' }) }),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          headers: {},
+          socket: { remoteAddress: '1.2.3.4' },
+          path: '/auth/challenge',
+        }),
+      }),
       getHandler: () => ({}),
       getClass: () => ({}),
     } as unknown as ExecutionContext;
@@ -42,7 +84,13 @@ describe('ThrottlerGuard', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(options);
 
     const ctx = {
-      switchToHttp: () => ({ getRequest: () => ({ headers: {}, socket: { remoteAddress: '5.6.7.8' }, path: '/credits/issue' }) }),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          headers: {},
+          socket: { remoteAddress: '5.6.7.8' },
+          path: '/credits/issue',
+        }),
+      }),
       getHandler: () => ({}),
       getClass: () => ({}),
     } as unknown as ExecutionContext;
@@ -61,7 +109,13 @@ describe('ThrottlerGuard', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(options);
 
     const ctx = {
-      switchToHttp: () => ({ getRequest: () => ({ headers: {}, socket: { remoteAddress: '9.9.9.9' }, path: '/auth/challenge' }) }),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          headers: {},
+          socket: { remoteAddress: '9.9.9.9' },
+          path: '/auth/challenge',
+        }),
+      }),
       getHandler: () => ({}),
       getClass: () => ({}),
     } as unknown as ExecutionContext;

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import helmet from 'helmet';
 import { AppModule } from '../src/app.module';
 
@@ -45,13 +45,17 @@ describe('Security Headers (e2e)', () => {
       .options('/')
       .set('Origin', 'http://localhost:4200')
       .set('Access-Control-Request-Method', 'GET');
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
+    expect(res.headers['access-control-allow-origin']).toBe(
+      'http://localhost:4200',
+    );
   });
 
   it('should reject requests from disallowed origins', async () => {
     const res = await request(app.getHttpServer())
       .get('/')
       .set('Origin', 'http://evil.example.com');
-    expect(res.headers['access-control-allow-origin']).not.toBe('http://evil.example.com');
+    expect(res.headers['access-control-allow-origin']).not.toBe(
+      'http://evil.example.com',
+    );
   });
 });

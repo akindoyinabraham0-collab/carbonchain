@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, HttpStatus } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../app.module';
+import request from 'supertest';
+import { AppModule } from './../src/app.module';
 
 /**
  * Issue #36 — Verify that state-mutating endpoints reject unauthenticated callers.
@@ -27,21 +27,39 @@ describe('JWT Auth Guard (e2e)', () => {
   it('POST /credits/issue rejects unauthenticated request', () => {
     return request(app.getHttpServer())
       .post('/credits/issue')
-      .send({ issuerPublicKey: 'G...', projectId: 'P1', vintageYear: 2024, methodology: 'VCS', geography: 'NG', tonnes: '1000', ipfsHash: 'baf' })
+      .send({
+        issuerPublicKey: 'G...',
+        projectId: 'P1',
+        vintageYear: 2024,
+        methodology: 'VCS',
+        geography: 'NG',
+        tonnes: '1000',
+        ipfsHash: 'baf',
+      })
       .expect(HttpStatus.UNAUTHORIZED);
   });
 
   it('POST /retirement rejects unauthenticated request', () => {
     return request(app.getHttpServer())
       .post('/retirement')
-      .send({ buyerPublicKey: 'G...', creditId: 'abc', tonnes: '100', reason: 'test' })
+      .send({
+        buyerPublicKey: 'G...',
+        creditId: 'abc',
+        tonnes: '100',
+        reason: 'test',
+      })
       .expect(HttpStatus.UNAUTHORIZED);
   });
 
   it('POST /marketplace/offer rejects unauthenticated request', () => {
     return request(app.getHttpServer())
       .post('/marketplace/offer')
-      .send({ sellerPublicKey: 'G...', creditId: 'abc', priceXlm: '1000', tonnes: '100' })
+      .send({
+        sellerPublicKey: 'G...',
+        creditId: 'abc',
+        priceXlm: '1000',
+        tonnes: '100',
+      })
       .expect(HttpStatus.UNAUTHORIZED);
   });
 });

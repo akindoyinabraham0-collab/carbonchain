@@ -217,7 +217,7 @@ carbonchain/
 
 - **Node.js** 18+ and **npm** 9+
 - **Rust** (stable toolchain) — [rustup.rs](https://rustup.rs)
-- **Soroban CLI** — `cargo install --locked soroban-cli`
+- **Soroban CLI** — `cargo install --locked stellar-cli@26.1.0 --features opt`
 - **Docker** — for local PostgreSQL
 - **Freighter browser extension** — [freighter.app](https://freighter.app)
 - A **Stellar testnet keypair** — [laboratory.stellar.org](https://laboratory.stellar.org)

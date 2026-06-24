@@ -59,8 +59,12 @@ function buildModule(): Promise<TestingModule> {
         provide: ConfigService,
         useValue: {
           get: jest.fn((key: string, def?: unknown) => {
-            if (key === 'HORIZON_URL') return 'https://horizon-testnet.stellar.org';
-            if (key === 'SOROBAN_RPC_URL') return 'https://soroban-testnet.stellar.org';
+            if (key === 'HORIZON_URL') {
+              return 'https://horizon-testnet.stellar.org';
+            }
+            if (key === 'SOROBAN_RPC_URL') {
+              return 'https://soroban-testnet.stellar.org';
+            }
             if (key === 'STELLAR_NETWORK') return 'TESTNET';
             return def;
           }),
@@ -74,12 +78,13 @@ function buildModule(): Promise<TestingModule> {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('StellarService — sequence number integration', () => {
+describe('StellarService - sequence number integration', () => {
   let service: StellarService;
   let seqNoManager: SequenceNumberManager;
   let signerKeypair: Keypair;
 
-  const CONTRACT_ID = 'CDLZFC3SYJYDZT7K4VW4KH2FJ7UKYBJN6HYJ6J3H7KQI33QIDJTF5JHQ';
+  const CONTRACT_ID =
+    'CDLZFC3SYJYDZT7K4VW4KH2FJ7UKYBJN6HYJ6J3H7KQI33QIDJTF5JHQ';
 
   beforeAll(() => {
     signerKeypair = Keypair.random();
@@ -91,8 +96,7 @@ describe('StellarService — sequence number integration', () => {
     service = module.get<StellarService>(StellarService);
     seqNoManager = module.get<SequenceNumberManager>(SequenceNumberManager);
     seqNoManager.clear();
-    // Trigger onModuleInit
-    await service.onModuleInit();
+    service.onModuleInit();
   });
 
   // ── getNextSequenceNumber ──────────────────────────────────────────────────

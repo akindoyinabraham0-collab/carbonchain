@@ -105,33 +105,24 @@ export class StellarService implements OnModuleInit {
       preparedTx.sign(signerKeypair);
 
       try {
-        const response =
-          await this.sorobanRpcServer.sendTransaction(preparedTx);
+        const response = await this.sorobanRpcServer.sendTransaction(preparedTx);
 
         if ((response.status as string) === 'PENDING') {
           return this.pollTransactionStatus(response.hash);
         }
-        throw new Error(
-          `Transaction failed with status: ${response.status}`,
-        );
+        throw new Error(`Transaction failed with status: ${response.status}`);
       } catch (error: unknown) {
         const isBadSeq =
           (error as Error).message?.toLowerCase().includes('tx_bad_seq') ||
-          (error as any)?.response?.data?.extras?.result_codes
-            ?.transaction === 'tx_bad_seq';
+          (error as any)?.response?.data?.extras?.result_codes?.transaction ===
+            'tx_bad_seq';
 
         if (isBadSeq && retries > 0) {
           this.logger.warn(
             `tx_bad_seq for ${pk} (sig:${method}), resetting cache and retrying`,
           );
           this.seqNoManager.reset(pk);
-          return this.invokeContract(
-            contractId,
-            method,
-            args,
-            signerKeypair,
-            retries - 1,
-          );
+          return this.invokeContract(contractId, method, args, signerKeypair, retries - 1);
         }
         throw error;
       }

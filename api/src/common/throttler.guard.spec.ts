@@ -2,32 +2,6 @@ import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ThrottlerGuard, ThrottleOptions } from './throttler.guard';
 
-function makeContext(ip: string, path: string, options?: ThrottleOptions): ExecutionContext {
-  const reflector = new Reflector();
-  const guard = new ThrottlerGuard(reflector);
-
-  const mockReq = {
-    headers: {},
-    socket: { remoteAddress: ip },
-    path,
-  };
-
-  const ctx = {
-    switchToHttp: () => ({ getRequest: () => mockReq }),
-    getHandler: () => ({}),
-    getClass: () => ({}),
-  } as unknown as ExecutionContext;
-
-  // Inject options directly onto the handler mock
-  if (options) {
-    jest.spyOn(reflector, 'get').mockReturnValue(options);
-  } else {
-    jest.spyOn(reflector, 'get').mockReturnValue(undefined);
-  }
-
-  return ctx;
-}
-
 describe('ThrottlerGuard', () => {
   let reflector: Reflector;
   let guard: ThrottlerGuard;

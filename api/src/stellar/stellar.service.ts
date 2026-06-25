@@ -117,6 +117,9 @@ export class StellarService implements OnModuleInit {
           (error as Error).message?.toLowerCase().includes('tx_bad_seq') ||
           (error as any)?.response?.data?.extras?.result_codes?.transaction ===
             'tx_bad_seq';
+      const response = await this.submitTransactionWithRetry(() =>
+        this.sorobanRpcServer.sendTransaction(preparedTx),
+      );
 
         if (isBadSeq && retries > 0) {
           this.logger.warn(
@@ -173,6 +176,9 @@ export class StellarService implements OnModuleInit {
       }
       throw error;
     }
+    return this.submitTransactionWithRetry(() =>
+      this.horizonServer.submitTransaction(tx),
+    );
   }
 
   async getContractData(
@@ -224,6 +230,58 @@ export class StellarService implements OnModuleInit {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     throw new Error(`Transaction polling timed out for hash: ${hash}`);
+  }
+
+  /**
+   * Issue #253 — Submit transaction with exponential backoff retry logic.
+   * Retries up to 3 times for transient errors (429, 503).
+   * Fails immediately for non-retryable errors (400, 404).
+   */
+  private async submitTransactionWithRetry<T>(
+    submitFn: () => Promise<T>,
+    maxRetries = 3,
+    initialDelayMs = 100,
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await submitFn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Extract status code from error response
+        const statusCode = error?.response?.status;
+
+        // Fail immediately on non-retryable errors
+        if (statusCode === 400 || statusCode === 404) {
+          throw error;
+        }
+
+        // Only retry on transient errors (429, 503)
+        if (statusCode !== 429 && statusCode !== 503) {
+          throw error;
+        }
+
+        // Don't retry after max attempts
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // Exponential backoff with jitter
+        const exponentialDelay = initialDelayMs * Math.pow(2, attempt);
+        const jitter = Math.random() * exponentialDelay * 0.1; // 10% jitter
+        const delayMs = exponentialDelay + jitter;
+
+        this.logger.warn(
+          `Transaction submission failed with ${statusCode}, retrying in ${Math.round(delayMs)}ms (attempt ${attempt + 1}/${maxRetries})`,
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    throw lastError || new Error('Transaction submission failed');
   }
 
   async readContract(

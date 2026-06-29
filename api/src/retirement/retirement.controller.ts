@@ -13,9 +13,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Response as ExpressResponse } from 'express';
-import { RetirementService, RetireDto, BatchRetireDto } from './retirement.service';
+import { RetirementService, RetireDto, BatchRetireResult } from './retirement.service';
+import { BatchRetireDto } from './dto/batch-retire.dto';
 import { RetirementRecord } from '../../../shared';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ThrottlerGuard, Throttle } from '../common/throttler.guard';
 import { PageResult } from '../credits/credit.repository';
 import { CertificateService } from './certificate.service';
 
@@ -53,9 +55,11 @@ export class RetirementController {
   @ApiOperation({ summary: 'Batch retire multiple credits at once' })
   @ApiResponse({ status: 201, description: 'Credits retired in batch' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 429, description: 'Too Many Requests' })
+  @Throttle({ limit: 5, ttl: 60000 })
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
   @Post('batch')
-  batchRetire(@Body() dto: BatchRetireDto): Promise<{ retirementIds: string[] }> {
+  batchRetire(@Body() dto: BatchRetireDto): Promise<BatchRetireResult> {
     return this.retirementService.batchRetire(dto);
   }
 
